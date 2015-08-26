@@ -1,0 +1,5 @@
+blocks_world_example: blocks_world_example.c chop.h chop.o
+  gcc -o blocks_world_example blocks_world_example.c chop.o
+
+chop.o: chop.c chop.h
+  gcc -c -o chop.o chop.c
