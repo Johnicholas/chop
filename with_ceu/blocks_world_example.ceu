@@ -1,0 +1,163 @@
+native do
+  #include "chop.h"
+end
+native @nohold _print_state();
+native @nohold _print_plan();
+native @nohold _chop();
+
+// TODO: this is a bit dubious - we're trying to say
+// that create_move_blocks is okay to take a pointer to 
+// the goal structure?
+native @nohold _create_move_blocks();
+
+
+_printf("First, test chop on some of the operators and smaller tasks\n");
+_printf("- Define state1:\n");
+var _state state1;
+state1.pos[_A] = _B;
+state1.pos[_B] = _TABLE;
+state1.pos[_C] = _TABLE;
+state1.clear[_A] = 1; // true
+state1.clear[_B] = 0; // false
+state1.clear[_C] = 1; // true
+state1.holding = _EMPTY;
+_print_state(&state1);
+
+_printf("- These should fail:\n");
+// [(PICKUP, A)];
+var _tasks&? pickup_a1;
+finalize
+  pickup_a1 = _create_empty();
+with
+  _printf("TODO: free pickup_a1\n");
+end
+
+var _tasks&? pickup_a2;
+finalize
+  pickup_a2 = _create_pickup(_A, pickup_a1);
+with
+  _printf("TODO: free pickup_a2\n");
+end
+
+var _plan&? pickup_a_out;
+finalize
+  pickup_a_out = _chop(&state1, pickup_a2, 1);
+with
+  _printf("TODO: free pickup_a_out\n");
+end
+
+_print_plan(pickup_a_out);
+
+// [(PICKUP, B)];
+var _tasks&? pickup_b1;
+finalize
+  pickup_b1 = _create_empty();
+with
+  _printf("TODO: free pickup_b1\n");
+end
+
+var _tasks&? pickup_b2;
+finalize
+  pickup_b2 = _create_pickup(_B, pickup_b1);
+with
+  _printf("TODO: free pickup_b2\n");
+end
+
+var _plan&? pickup_b_out;
+finalize
+  pickup_b_out = _chop(&state1, pickup_b2, 1);
+with
+  _printf("TODO: free pickup_b_out\n");
+end
+
+_print_plan(pickup_b_out);
+
+_printf("- these should succeed:\n");
+
+// [(PICKUP, C)];
+var _tasks&? pickup_c1;
+finalize
+  pickup_c1 = _create_empty();
+with
+  _printf("TODO: free pickup_c1\n");
+end
+
+var _tasks&? pickup_c2;
+finalize
+  pickup_c2 = _create_pickup(_C, pickup_c1);
+with
+  _printf("TODO: free pickup_c2\n");
+end
+
+var _plan&? pickup_c_out;
+finalize
+  pickup_c_out = _chop(&state1, pickup_c2, 1);
+with
+  _printf("TODO: free pickup_c_out\n");
+end
+
+_print_plan(pickup_c_out);
+
+// [(UNSTACK, A, B)];
+var _tasks&? unstack_a_b1;
+finalize
+  unstack_a_b1 = _create_empty();
+with
+  _printf("TODO: free unstack_a_b1\n");
+end
+
+var _tasks&? unstack_a_b2;
+finalize
+  unstack_a_b2 = _create_unstack(_A, _B, unstack_a_b1);
+with
+  _printf("TODO: free unstack_a_b2\n");
+end
+
+var _plan&? unstack_a_b_out;
+finalize
+  unstack_a_b_out = _chop(&state1, unstack_a_b2, 1);
+with
+  _printf("TODO: free unstack_a_b_out\n");
+end
+
+_print_plan(unstack_a_b_out);
+
+_printf("Run chop on two block-stacking problems, both of which start in state1.\n");
+_printf("The goal for the 2nd problem omits some of the conditions in the goal\n");
+_printf("of the 1st problem, but those conditions will need to be achieved\n");
+_printf("anyway, so both goals should produce the same plan.\n");
+_printf("- Define goal1a:\n");
+var _state goal1a;
+goal1a.pos[_A] = _TABLE;
+goal1a.pos[_B] = _A;
+goal1a.pos[_C] = _B;
+goal1a.clear[_A] = 0; // false
+goal1a.clear[_B] = 0; // false
+goal1a.clear[_C] = 1; // true
+goal1a.holding = _EMPTY;
+_print_state(&goal1a); // TODO: print_goal
+
+var _tasks&? move_blocks_goal1a1;
+finalize
+  move_blocks_goal1a1 = _create_empty();
+with
+  _printf("TODO: free move_blocks_goal1a1\n");
+end
+
+var _tasks&? move_blocks_goal1a2;
+finalize
+  move_blocks_goal1a2 = _create_move_blocks(&goal1a, move_blocks_goal1a1);
+with
+  _printf("TODO: free move_blocks_goal1a2\n");
+end
+
+var _plan&? move_blocks_goal1a_out;
+finalize
+  move_blocks_goal1a_out = _chop(&state1, move_blocks_goal1a2, 1);
+with
+  _printf("TODO: free move_blocks_goal1a_out\n");
+end
+
+_print_plan(move_blocks_goal1a_out);
+
+escape 0;
