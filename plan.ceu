@@ -1,0 +1,22 @@
+input (int, int, int) PICKUP;
+input (int, int, int, int) DROPOFF;
+
+par do
+  loop do
+    var int name;
+    var int parcel;
+    var int truck;
+    (name, parcel, truck) = await PICKUP;
+    _printf("ceu saw pickup\n");
+  end
+with
+  loop do
+    var int name;
+    var int parcel;
+    var int truck;
+    var int location;
+    (name, parcel, truck, location) = await DROPOFF;
+    _printf("ceu saw dropoff\n");
+  end
+end
+

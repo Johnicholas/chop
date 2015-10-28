@@ -1,5 +1,14 @@
-blocks_world_example: blocks_world_example.c chop.h chop.o
-  gcc -o blocks_world_example blocks_world_example.c chop.o
+driverlogish_example: driverlogish_example.c chop.h chop.o
+	gcc -o driverlogish_example driverlogish_example.c chop.o
 
-chop.o: chop.c chop.h
-  gcc -c -o chop.o chop.c
+chop.o: chop.c chop.h _ceu_app.h ceu_types.h
+        gcc -c -o chop.o chop.c
+
+_ceu_app.c: plan.ceu
+	ceu plan.ceu
+
+_ceu_app.h: plan.ceu
+	ceu plan.ceu
+
+clean:
+	rm driverlogish_example chop.o _ceu_app.c _ceu_app.h

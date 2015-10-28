@@ -1,48 +1,57 @@
 #ifndef CHOP_H
 #define CHOP_H
 
-// blocks world state
-
+// locations
 enum {
-  A,
-  B,
+  NW,
+  N,
+  NE,
+  W,
   C,
-  TABLE,
-  HAND,
-  EMPTY,
-};
-#define NUM_BLOCKS 3
+  E,
+  SW,
+  S,
+  SE,
 
-struct state {
-  int pos[NUM_BLOCKS]; // s->pos[A] answers "where is A?"
-  int clear[NUM_BLOCKS]; // s->clear[A] answers "is A clear?"
-  int holding; // s->holding answers "what are we currently holding?"
-};
+  NUMBER_OF_LOCATIONS,
 
-void print_state(struct state* to_print);
-
-// forward declaration
-struct tasks;
-
-struct tasks* create_empty();
-struct tasks* create_get(int b, struct tasks* rest);
-struct tasks* create_put(int b1, int b2, struct tasks* rest);
-struct tasks* create_pickup(int b, struct tasks* rest);
-struct tasks* create_unstack(int b, int c, struct tasks* rest);
-struct tasks* create_putdown(int b, struct tasks* rest);
-struct tasks* create_stack(int b, int c, struct tasks* rest);
-struct tasks* create_move_blocks(struct state* goal, struct tasks* rest);
-struct tasks* create_move_one(int b1, int dest, struct tasks* rest);
-
-struct plan;
-struct plan_vtable {
-  void (*print)(struct plan* self);
-};
-struct plan {
-  struct plan_vtable* vtable;
+  // things that are like a location,
+  // but are not actually locations.
+  ROOT,
+  DONT_CARE,
 };
 
-struct plan* chop(struct state* s, struct tasks* t, int verbose);
+// entities
+enum {
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  T1,
+  T2,
+  T3,
+  
+  NUMBER_OF_ENTITIES
+};
+
+struct model {
+  int route[NUMBER_OF_LOCATIONS];
+  int pos[NUMBER_OF_ENTITIES];
+  int *trucks;
+  int number_of_trucks;
+};
+
+struct goal {
+  int pos[NUMBER_OF_ENTITIES];
+};
+
+struct tceu_app* chop(struct model*, struct goal*);
+
+
 
 #endif
-
