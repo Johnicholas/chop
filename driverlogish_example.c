@@ -1,4 +1,5 @@
 #include "chop.h"
+#include "_ceu_app.h"
 
 // We need stdio.h for printf
 #include <stdio.h>
@@ -59,10 +60,13 @@ int main(int argc, char* argv[]) {
 
   struct tceu_app* out = chop(&state1, &goal1);
 
-  if (out) {
-    printf("succeeded\n");
-  } else {
-    printf("failed\n");
+  printf("done planning, starting to execute the plan\n");
+
+  ceu_sys_go(out, CEU_IN_START, (void*)0);
+  int i;
+  for (i = 0; i < 25; i++) {
+    printf("...\n");
+    ceu_sys_go(out, CEU_IN_TICK, (void*)0);
   }
 
   return 0;

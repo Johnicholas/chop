@@ -1,13 +1,133 @@
 input (int, int, int) PICKUP;
 input (int, int, int, int) DROPOFF;
+input (int, int) BEFORE;
+input int DONE_CONFIG;
+input void START;
+input void TICK;
 
+class IntChannel with
+  event int done;
+do
+  await FOREVER;
+end
+
+class PredecessorWatch with
+  var int outstanding;
+  event void last;
+do
+  await FOREVER;
+end
+
+class Before with
+  var PredecessorWatch& barrier;
+  var IntChannel& done_bus;
+  var int needle;
+do
+  var int id = await done_bus.done until id == needle;
+  if barrier.outstanding == 1 then
+    barrier.outstanding = 0;
+    emit barrier.last;
+  else
+    barrier.outstanding = barrier.outstanding - 1;
+  end
+end
+
+class Pickup with
+  var int name;
+  var int parcel;
+  var int truck;
+  var IntChannel& done_bus;
+do
+  _printf("pickup(%d, %d, %d) - waiting for config\n", name, parcel, truck);
+  var int count_predecessors = 0;
+  var PredecessorWatch predecessors with
+    this.outstanding = 0;
+  end;
+  pool Before[] watchers;
+  par/or do
+    var int id = await DONE_CONFIG until id == name;
+    _printf("pickup(%d, %d, %d) - done config\n", name, parcel, truck);
+  with
+    loop do
+      var int id;
+      var int other_id;
+      (other_id, id) = await BEFORE until id == name;
+      _printf("pickup(%d, %d, %d) - wait for %d before starting\n", name, parcel, truck, other_id);
+      predecessors.outstanding = predecessors.outstanding + 1;
+      spawn Before in watchers with
+        this.barrier = predecessors;
+        this.done_bus = done_bus;
+        this.needle = other_id;
+      end;
+    end
+  end
+
+  await START;
+  if predecessors.outstanding > 0 then
+    await predecessors.last;
+  end
+
+  _printf("pickup(%d, %d, %d) is starting\n", name, parcel, truck);
+  await TICK;
+  _printf("pickup(%d, %d, %d) is done\n", name, parcel, truck);
+  emit done_bus.done => name;
+end
+
+class Dropoff with
+  var int name;
+  var int parcel;
+  var int truck;
+  var int location;
+  var IntChannel& done_bus;
+do
+  _printf("dropoff(%d, %d, %d) - waiting for config\n", name, parcel, truck);
+  var PredecessorWatch predecessors with
+    this.outstanding = 0;
+  end;
+  pool Before[] watchers;
+
+  par/or do
+    var int id = await DONE_CONFIG until id == name;
+    _printf("dropoff(%d, %d, %d) - done config\n", name, parcel, truck);
+  with
+    loop do
+      var int id;
+      var int other_id;
+      (other_id, id) = await BEFORE until id == name;
+      _printf("dropoff(%d, %d, %d) - wait for %d before starting\n", name, parcel, truck, other_id);
+      predecessors.outstanding = predecessors.outstanding + 1;
+      spawn Before in watchers with
+        this.barrier = predecessors;
+        this.done_bus = done_bus;
+        this.needle = other_id;
+      end;
+    end
+  end
+
+  await START;
+  if predecessors.outstanding > 0 then
+    await predecessors.last;
+  end
+
+  _printf("dropoff(%d, %d, %d) is starting\n", name, parcel, truck);
+  await TICK;
+  _printf("dropoff(%d, %d, %d) is done\n", name, parcel, truck);
+  emit done_bus.done => name;
+end
+
+var IntChannel done_bus;
 par do
   loop do
     var int name;
     var int parcel;
     var int truck;
     (name, parcel, truck) = await PICKUP;
-    _printf("ceu saw pickup\n");
+    spawn Pickup with
+      this.name = name;
+      this.parcel = parcel;
+      this.truck = truck;
+      this.done_bus = done_bus;
+    end;
   end
 with
   loop do
@@ -16,7 +136,13 @@ with
     var int truck;
     var int location;
     (name, parcel, truck, location) = await DROPOFF;
-    _printf("ceu saw dropoff\n");
+    spawn Dropoff with
+      this.name = name;
+      this.parcel = parcel;
+      this.truck = truck;
+      this.location = location;
+      this.done_bus = done_bus;
+    end;
   end
 end
 
