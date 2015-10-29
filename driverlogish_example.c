@@ -8,26 +8,6 @@
 
 int main(int argc, char* argv[]) {
   struct model state1;
-  // The map is E-shaped.
-  // We express the map via a single "parent",
-  // for every location except the root,
-  // creating a spanning tree.
-  //
-  // +<+<+
-  // v
-  // +<+<+
-  // ^
-  // +<+<+
-  //
-  state1.route[NW] = W;
-  state1.route[N] = NW;
-  state1.route[NE] = N;
-  state1.route[W] = ROOT;
-  state1.route[C] = W;
-  state1.route[E] = C;
-  state1.route[SW] = W;
-  state1.route[S] = SW;
-  state1.route[SE] = S;
 
   state1.pos[P1] = NW;
   state1.pos[P2] = N;
@@ -64,9 +44,9 @@ int main(int argc, char* argv[]) {
 
   ceu_sys_go(out, CEU_IN_START, (void*)0);
   int i;
-  for (i = 0; i < 25; i++) {
+  for (i = 100; i < 125; i++) {
     printf("...\n");
-    ceu_sys_go(out, CEU_IN_TICK, (void*)0);
+    ceu_sys_go(out, CEU_IN_TICK, &i);
   }
 
   return 0;

@@ -3,7 +3,7 @@ input (int, int, int, int) DROPOFF;
 input (int, int) BEFORE;
 input int DONE_CONFIG;
 input void START;
-input void TICK;
+input int TICK;
 
 class IntChannel with
   event int done;
@@ -68,7 +68,7 @@ do
   end
 
   _printf("pickup(%d, %d, %d) is starting\n", name, parcel, truck);
-  await TICK;
+  var int id = await TICK until id == name; 
   _printf("pickup(%d, %d, %d) is done\n", name, parcel, truck);
   emit done_bus.done => name;
 end
@@ -110,7 +110,7 @@ do
   end
 
   _printf("dropoff(%d, %d, %d) is starting\n", name, parcel, truck);
-  await TICK;
+  var int id = await TICK until id == name; 
   _printf("dropoff(%d, %d, %d) is done\n", name, parcel, truck);
   emit done_bus.done => name;
 end
