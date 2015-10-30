@@ -38,25 +38,20 @@ void pickup(struct planning_state* state, int parcel, int truck) {
   // pickup <parcel> with <truck>
   // after <prereqs>, and name this operation <name>
   // preconditions
-  // assert(state->pos[truck] == state->pos[parcel])
+  assert(state->pos[truck] == state->pos[parcel]);
   // effects
   {
     tceu__int__int__int payload = { name, parcel, truck };
     ceu_sys_go(state->plan, CEU_IN_PICKUP, &payload);
   }
-  if (state->now[parcel] > 0) {
-    tceu__int__int payload = { state->now[parcel], name };
-    ceu_sys_go(state->plan, CEU_IN_BEFORE, &payload);
-  }
-  if (state->now[truck] > 0 && state->now[truck] != state->now[parcel]) {
+  if (state->now[truck] > 0) {
     tceu__int__int payload = { state->now[truck], name };
     ceu_sys_go(state->plan, CEU_IN_BEFORE, &payload);
   }
   ceu_sys_go(state->plan, CEU_IN_DONE_CONFIG, &name);
-  state->gensym = name;
-  state->now[parcel] = name;
   state->now[truck] = name;
   state->pos[parcel] = truck;
+  state->gensym = name;
 }
 
 void dropoff(struct planning_state* state, int parcel, int truck, int location) {
@@ -67,23 +62,69 @@ void dropoff(struct planning_state* state, int parcel, int truck, int location) 
   // after <prereqs>, and name this operation <name>
   // preconditions
   assert(state->pos[parcel] == truck);
-  // assert(state->pos[truck] == location);
+  assert(state->pos[truck] == location);
   // effects
   tceu__int__int__int__int payload = { name, parcel, truck, location };
   ceu_sys_go(state->plan, CEU_IN_DROPOFF, &payload);
-  if (state->now[parcel] > 0) {
-    tceu__int__int payload = { state->now[parcel], name };
-    ceu_sys_go(state->plan, CEU_IN_BEFORE, &payload);
-  }
-  if (state->now[truck] > 0 && state->now[truck] != state->now[parcel]) {
+  if (state->now[truck] > 0) {
     tceu__int__int payload = { state->now[truck], name };
     ceu_sys_go(state->plan, CEU_IN_BEFORE, &payload);
   }
   ceu_sys_go(state->plan, CEU_IN_DONE_CONFIG, &name);
-  state->gensym = name;
-  state->now[parcel] = name;
   state->now[truck] = name;
   state->pos[parcel] = location;
+  state->gensym = name;
+}
+
+void move(struct planning_state* state, int truck, int from, int to) {
+  int name = state->gensym + 1;
+
+  // MOVE OPERATOR
+  // move <truck> from <from> to <to>,
+  // after <prereqs>, and name this operation <name>
+  // preconditions
+  assert(state->pos[truck] == from);
+  assert(state->route[to] == from || state->route[from] == to);
+  // effects
+  tceu__int__int__int__int payload = { name, truck, from, to };
+  ceu_sys_go(state->plan, CEU_IN_MOVE, &payload);
+  if (state->now[truck] > 0) {
+    tceu__int__int payload = { state->now[truck], name };
+    ceu_sys_go(state->plan, CEU_IN_BEFORE, &payload);
+  }
+  ceu_sys_go(state->plan, CEU_IN_DONE_CONFIG, &name);
+
+  state->now[truck] = name;
+  state->pos[truck] = to;
+  state->gensym = name;
+}
+
+// BUG: this returns inefficient routes
+void route(struct planning_state* state, int truck, int location) {
+  int down[NUMBER_OF_LOCATIONS] = {};
+  int i, j, k, l;
+  int destination_cursor = location;
+  for (j = NUMBER_OF_LOCATIONS - 1; j >= 0; j--) {
+    int previous = state->route[destination_cursor];
+    if (previous == ROOT) {
+      break;
+    }
+    down[j] = previous;
+    destination_cursor = previous;
+  }
+  while (state->pos[truck] != location) { 
+    for (k = j; k < NUMBER_OF_LOCATIONS; k++) {
+      if (state->pos[truck] == down[k]) {
+        for (l = k+1; l < NUMBER_OF_LOCATIONS; l++) {
+          move(state, truck, state->pos[truck], down[l]);
+        }
+        move(state, truck, state->pos[truck], location);
+        return;
+      }
+    }
+    assert(state->route[state->pos[truck]] != ROOT);
+    move(state, truck, state->pos[truck], state->route[state->pos[truck]]);
+  }
 }
 
 void move_parcels(struct planning_state* state, struct goal* goal) {
@@ -97,11 +138,10 @@ void move_parcels(struct planning_state* state, struct goal* goal) {
     }
     if (state->pos[parcel] != destination) {
       int truck = state->trucks[truck_index];
-      // TODO: route truck from wherever it is to whereever the parcel is
+      route(state, truck, state->pos[parcel]);
       pickup(state, parcel, truck);
-      // TODO: route truck from wherever it is to wherever the destination is
+      route(state, truck, destination);
       dropoff(state, parcel, truck, destination);
-
       truck_index++;
       if (truck_index >= state->number_of_trucks) {
         truck_index = 0;
@@ -112,8 +152,13 @@ void move_parcels(struct planning_state* state, struct goal* goal) {
 
 struct tceu_app* chop(struct model* model, struct goal* goal) {
   struct planning_state planning_state = {};
-  memcpy(planning_state.route, model->route, sizeof(planning_state.route));
-  memcpy(planning_state.pos, model->pos, sizeof(planning_state.pos));
+  int i;
+  for (i = 0; i < NUMBER_OF_LOCATIONS; i++) {
+    planning_state.route[i] = model->route[i];
+  }
+  for (i = 0; i < NUMBER_OF_ENTITIES; i++) {
+    planning_state.pos[i] = model->pos[i];
+  }
 
   planning_state.trucks = model->trucks;
   planning_state.number_of_trucks = model->number_of_trucks;

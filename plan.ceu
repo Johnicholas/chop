@@ -1,5 +1,6 @@
 input (int, int, int) PICKUP;
 input (int, int, int, int) DROPOFF;
+input (int, int, int, int) MOVE;
 input (int, int) BEFORE;
 input int DONE_CONFIG;
 input void START;
@@ -115,6 +116,48 @@ do
   emit done_bus.done => name;
 end
 
+class Move with
+  var int name;
+  var int truck;
+  var int from;
+  var int to;
+  var IntChannel& done_bus;
+do
+  _printf("move(%d, %d, %d, %d) - waiting for config\n", name, truck, from, to);
+  var PredecessorWatch predecessors with
+    this.outstanding = 0;
+  end;
+  pool Before[] watchers;
+
+  par/or do
+    var int id = await DONE_CONFIG until id == name;
+    _printf("move(%d, %d, %d, %d) - done config\n", name, truck, from, to);
+  with
+    loop do
+      var int id;
+      var int other_id;
+      (other_id, id) = await BEFORE until id == name;
+      _printf("move(%d, %d, %d, %d) - wait for %d before starting\n", name, truck, from, to, other_id);
+      predecessors.outstanding = predecessors.outstanding + 1;
+      spawn Before in watchers with
+        this.barrier = predecessors;
+        this.done_bus = done_bus;
+        this.needle = other_id;
+      end;
+    end
+  end
+
+  await START;
+  if predecessors.outstanding > 0 then
+    await predecessors.last;
+  end
+
+  _printf("move(%d, %d, %d, %d) is starting\n", name, truck, from, to);
+  var int id = await TICK until id == name; 
+  _printf("move(%d, %d, %d, %d) is done\n", name, truck, from, to);
+  emit done_bus.done => name;
+end
+
 var IntChannel done_bus;
 par do
   loop do
@@ -141,6 +184,21 @@ with
       this.parcel = parcel;
       this.truck = truck;
       this.location = location;
+      this.done_bus = done_bus;
+    end;
+  end
+with
+  loop do
+    var int name;
+    var int truck;
+    var int from;
+    var int to;
+    (name, truck, from, to) = await MOVE;
+    spawn Move with
+      this.name = name;
+      this.truck = truck;
+      this.from = from;
+      this.to = to;
       this.done_bus = done_bus;
     end;
   end
