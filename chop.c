@@ -1,8 +1,28 @@
 #include "chop.h"
 
 #include <assert.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+
+#define ceu_out_assert(v) ceu_sys_assert(v)
+void ceu_sys_assert (int v) {
+    assert(v);
+}
+
+#define ceu_out_log(m,s) ceu_sys_log(m,s)
+void ceu_sys_log (int mode, long s) {
+    switch (mode) {
+        case 0:
+            printf("%s", (char*)s);
+            break;
+        case 1:
+            printf("%lX", s);
+            break;
+        case 2:
+            printf("%ld", s);
+            break;
+    }
+}
 
 #include "_ceu_app.c"
 
@@ -32,16 +52,17 @@ struct tceu_app* create_empty_plan() {
   return answer;
 }
 
-void pickup(struct planning_state* state, int parcel, int truck) {
+void pickup(struct planning_state* state, int parcel, int truck, int location) {
   int name = state->gensym + 1;
   // PICKUP OPERATOR
   // pickup <parcel> with <truck>
   // after <prereqs>, and name this operation <name>
   // preconditions
-  assert(state->pos[truck] == state->pos[parcel]);
+  assert(state->pos[truck] == location);
+  assert(state->pos[parcel] == location);
   // effects
   {
-    tceu__int__int__int payload = { name, parcel, truck };
+    tceu__int__int__int payload = { parcel, truck, location };
     ceu_sys_go(state->plan, CEU_IN_PICKUP, &payload);
   }
   if (state->now[truck] > 0) {
@@ -64,7 +85,7 @@ void dropoff(struct planning_state* state, int parcel, int truck, int location) 
   assert(state->pos[parcel] == truck);
   assert(state->pos[truck] == location);
   // effects
-  tceu__int__int__int__int payload = { name, parcel, truck, location };
+  tceu__int__int__int payload = { parcel, truck, location };
   ceu_sys_go(state->plan, CEU_IN_DROPOFF, &payload);
   if (state->now[truck] > 0) {
     tceu__int__int payload = { state->now[truck], name };
@@ -86,7 +107,7 @@ void move(struct planning_state* state, int truck, int from, int to) {
   assert(state->pos[truck] == from);
   assert(state->route[to] == from || state->route[from] == to);
   // effects
-  tceu__int__int__int__int payload = { name, truck, from, to };
+  tceu__int__int__int payload = { truck, from, to };
   ceu_sys_go(state->plan, CEU_IN_MOVE, &payload);
   if (state->now[truck] > 0) {
     tceu__int__int payload = { state->now[truck], name };
@@ -132,16 +153,17 @@ void move_parcels(struct planning_state* state, struct goal* goal) {
   int parcel;
 
   for (parcel = 0; parcel < NUMBER_OF_ENTITIES; parcel++) {
-    int destination = goal->pos[parcel];
-    if (destination == DONT_CARE) {
+    int to = goal->pos[parcel];
+    if (to == DONT_CARE) {
       continue;
     }
-    if (state->pos[parcel] != destination) {
+    if (state->pos[parcel] != to) {
       int truck = state->trucks[truck_index];
-      route(state, truck, state->pos[parcel]);
-      pickup(state, parcel, truck);
-      route(state, truck, destination);
-      dropoff(state, parcel, truck, destination);
+      int from = state->pos[parcel];
+      route(state, truck, from);
+      pickup(state, parcel, truck, from);
+      route(state, truck, to);
+      dropoff(state, parcel, truck, to);
       truck_index++;
       if (truck_index >= state->number_of_trucks) {
         truck_index = 0;
@@ -169,3 +191,13 @@ struct tceu_app* chop(struct model* model, struct goal* goal) {
   return planning_state.plan;
 }
 
+void execute(struct tceu_app* out) {
+  ceu_sys_go(out, CEU_IN_START, (void*)0);
+  /*
+  int i;
+  for (i = 100; i < 200; i++) {
+    printf("...\n");
+    ceu_sys_go(out, CEU_IN_TICK, &i);
+  }
+  */
+}

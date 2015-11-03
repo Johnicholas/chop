@@ -51,7 +51,7 @@ struct goal {
 };
 
 struct tceu_app* chop(struct model*, struct goal*);
-
+void execute(struct tceu_app* out);
 
 
 #endif

@@ -1,5 +1,4 @@
 #include "chop.h"
-#include "_ceu_app.h"
 
 // We need stdio.h for printf
 #include <stdio.h>
@@ -56,12 +55,7 @@ int main(int argc, char* argv[]) {
 
   printf("done planning, starting to execute the plan\n");
 
-  ceu_sys_go(out, CEU_IN_START, (void*)0);
-  int i;
-  for (i = 100; i < 200; i++) {
-    printf("...\n");
-    ceu_sys_go(out, CEU_IN_TICK, &i);
-  }
+  execute(out);
 
   return 0;
 }
