@@ -1,14 +1,14 @@
-driverlogish_example: driverlogish_example.c chop.h chop.o
-	gcc -o driverlogish_example driverlogish_example.c chop.o
+ex1: main_part.c example1.o
+	gcc -o ex1 main_part.c example1.o
 
-chop.o: chop.c chop.h _ceu_app.h ceu_types.h
-        gcc -c -o chop.o chop.c
+example1.o: example1.c
+	gcc -c -o example1.o example1.c
 
-_ceu_app.c: plan.ceu
-	ceu plan.ceu
+example1.c: lemon example1.y lempar.c
+	./lemon example1.y
 
-_ceu_app.h: plan.ceu
-	ceu plan.ceu
+lemon: lemon.c
+	gcc -o lemon lemon.c
 
 clean:
-	rm driverlogish_example chop.o _ceu_app.c _ceu_app.h
+	rm ex1 example1.o example1.c example1.h example1.out lemon
