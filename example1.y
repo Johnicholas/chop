@@ -1,32 +1,51 @@
-%token_type { int }
-
-%left PLUS MINUS.
-%left DIVIDE TIMES.
-
 %include {
+
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "example1.h"
- }
+
+// I don't think these macros matter here?
+// because we just need the enums and typedefs
+#define ceu_out_assert(X)
+#define ceu_out_log(X)
+typedef int* intptr;
+#include "_ceu_app.h"
+
+extern tceu_app app;
+
+}
+
+%token_type { int }
 
 %syntax_error {
   fprintf(stderr, "Syntax error!\n");
- }
+}
 
-program ::= expr(A). { printf("Result=%d\n", A); }
+assign(A) ::= ID(B) EQUALS sums(C). { 
+  tceu__intptr__int__int payload = { &A, B, C };
+  ceu_sys_go(&app, CEU_IN_ASSIGN, &payload);
+}
+sums(A) ::= sums(B) PLUS products(C). {
+  tceu__intptr__int__int payload = { &A, B, C };
+  ceu_sys_go(&app, CEU_IN_SUMS_PLUS, &payload);
+}
+sums(A) ::= products(B). {
 
-  expr(A) ::= expr(B) MINUS expr(C). { A = B - C; }
-    expr(A) ::= expr(B) PLUS expr(C). { A = B + C; }
-      expr(A) ::= expr(B) TIMES expr(C). { A = B * C; }
-        expr(A) ::= expr(B) DIVIDE expr(C). {
-          if (C != 0) {
-            A = B / C;
-          } else {
-            fprintf(stderr, "divide by zero\n");
-            exit(1);
-          }
-        }
-
-          expr(A) ::= INTEGER(B). { A = B; }
+  tceu__intptr__int payload = { &A, B };
+  ceu_sys_go(&app, CEU_IN_SUMS, &payload);
+}  
+products(A) ::= products(B) TIMES value(C). {
+  tceu__intptr__int__int payload = { &A, B, C };
+  ceu_sys_go(&app, CEU_IN_PRODUCTS_TIMES, &payload);
+}
+products(A) ::= value(B). {
+  tceu__intptr__int payload = { &A, B };
+  ceu_sys_go(&app, CEU_IN_PRODUCTS, &payload);
+}
+value(A) ::= INT(B). {
+  tceu__intptr__int payload = { &A, B };
+  ceu_sys_go(&app, CEU_IN_VALUE_INT, &payload);
+}    
+value(A) ::= ID(B). {
+  tceu__intptr__int payload = { &A, B };
+  ceu_sys_go(&app, CEU_IN_VALUE_ID, &payload);
+}
 
