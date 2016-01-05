@@ -1,0 +1,132 @@
+native @nohold _printf();
+
+input (int, int, int) MOVE;
+input (int, int, int) PICKUP;
+input (int, int, int) DROPOFF;
+input void PAR;
+input void SEQ;
+input void RUN;
+
+data Exp with
+  tag NIL;
+or
+  tag S with
+    var Exp left;
+    var Exp right;
+  end
+or
+  tag P with
+    var Exp left;
+    var Exp right;
+  end
+or
+  tag GO with
+    var int a; 
+    var int b;
+    var int c;
+  end
+or
+  tag TAKE with
+    var int a; 
+    var int b;
+    var int c;
+  end
+or
+  tag DROP with
+    var int a; 
+    var int b;
+    var int c;
+  end
+or
+  tag CONS with
+    var Exp car;
+    var Exp cdr;
+    var Exp temp;
+  end
+end
+
+pool Exp[] tree = new Exp.CONS(Exp.NIL(), Exp.NIL(), Exp.NIL());
+
+par do
+  loop do
+    await RUN;
+    traverse t in &&tree do
+      watching *t do
+        if t:S then
+          _printf("SEQ(");
+          traverse &&t:S.left;
+          _printf(", ");
+          traverse &&t:S.right;
+          _printf(")");
+        else/if t:P then
+          _printf("PAR(");
+          traverse &&t:P.left;
+          _printf(", ");
+          traverse &&t:P.right;
+          _printf(")");
+        else/if t:GO then
+          _printf("MOVE(%d, %d, %d)", t:GO.a, t:GO.b, t:GO.c);
+        else/if t:TAKE then
+          _printf("PICKUP(%d, %d, %d)", t:TAKE.a, t:TAKE.b, t:TAKE.c);
+        else/if t:DROP then
+          _printf("DROPOFF(%d, %d, %d)", t:DROP.a, t:DROP.b, t:DROP.c);
+        else/if t:CONS then
+          traverse &&t:CONS.car;
+          _printf("\n");
+          traverse &&t:CONS.cdr;
+        else
+          _printf("?");
+        end
+      end
+    end
+    _printf("\n");
+  end
+with
+  loop do
+    var int x, y, z;
+    (x, y, z) = await MOVE;
+    _printf("Saw MOVE: %d %d %d\n", x, y, z);
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.GO(x, y, z), Exp.NIL());
+    tree.CONS.temp.CONS.car = tree.CONS.car;
+    tree.CONS.car = tree.CONS.temp;
+  end
+with
+  loop do
+    var int x, y, z;
+    (x, y, z) = await PICKUP;
+    _printf("Saw PICKUP: %d %d %d\n", x, y, z);
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.TAKE(x, y, z), Exp.NIL());
+    tree.CONS.temp.CONS.car = tree.CONS.car;
+    tree.CONS.car = tree.CONS.temp;
+  end
+with
+  loop do
+    var int x, y, z;
+    (x, y, z) = await DROPOFF;
+    _printf("Saw DROPOFF: %d %d %d\n", x, y, z);
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.DROP(x, y, z), Exp.NIL());
+    tree.CONS.temp.CONS.car = tree.CONS.car;
+    tree.CONS.car = tree.CONS.temp;
+  end
+with
+  loop do
+    await SEQ;
+    _printf("Saw SEQ\n");
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.S(Exp.NIL(), Exp.NIL()), Exp.NIL());
+    tree.CONS.temp.CONS.cdr.S.left = tree.CONS.car.CONS.car.CONS.cdr; // cadr
+    tree.CONS.temp.CONS.cdr.S.right = tree.CONS.car.CONS.cdr; // car
+    tree.CONS.temp.CONS.car = tree.CONS.car.CONS.car.CONS.car; // cddr
+    tree.CONS.car = tree.CONS.temp;
+  end
+with
+  loop do
+    await PAR;
+    _printf("Saw Par\n");
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.P(Exp.NIL(), Exp.NIL()), Exp.NIL());
+    tree.CONS.temp.CONS.cdr.P.left = tree.CONS.car.CONS.car.CONS.cdr; // cadr
+    tree.CONS.temp.CONS.cdr.P.right = tree.CONS.car.CONS.cdr; // car
+    tree.CONS.temp.CONS.car = tree.CONS.car.CONS.car.CONS.car; // cddr
+    tree.CONS.car = tree.CONS.temp;
+  end
+end
+
