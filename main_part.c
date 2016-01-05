@@ -31,30 +31,50 @@ byte CEU_DATA[sizeof(CEU_Main)];
 tceu_app app;
 // BEWARE GLOBALS BEWARE GLOBALS
 
-#include "example1.h"
-extern void* ParseAlloc(void *(*mallocProc)(size_t));
-extern void Parse(void*, int, int);
-extern void ParseFree(void*, void (*free)(void*));
-
 int main(int argc, char* argv[]) {
   app.data = (tceu_org*) &CEU_DATA;
   app.init = &ceu_app_init;
   app.init(&app);
 
-  void* p = ParseAlloc(malloc);
-
   // This corresponds to lexing: "X1 = X2 + X3 * 2"
-  Parse(p, ID, 1);
-  Parse(p, EQUALS, 0);
-  Parse(p, ID, 2);
-  Parse(p, PLUS, 0);
-  Parse(p, ID, 3);
-  Parse(p, TIMES, 0);
-  Parse(p, INT, 2);
-  Parse(p, 0, 0);
+
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Identifier 1
+  {
+    tceu__int payload = { 2 };
+    ceu_sys_go(&app, CEU_IN_IDENTIFIER, &payload);
+  }
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Identifier
+  {
+    tceu__int payload = { 3 };
+    ceu_sys_go(&app, CEU_IN_IDENTIFIER, &payload);
+  }
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Integer
+  {
+    tceu__int payload = { 2 };
+    ceu_sys_go(&app, CEU_IN_INTEGER, &payload);
+  }
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Times
+  {
+    ceu_sys_go(&app, CEU_IN_TIMES, NULL );
+  }
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Plus
+  {
+    ceu_sys_go(&app, CEU_IN_PLUS, NULL );
+  }
+  ceu_sys_go(&app, CEU_IN_PRINT, NULL);
+  // spawn Assign
+  {
+    tceu__int payload = { 1 };
+    ceu_sys_go(&app, CEU_IN_ASSIGN, &payload);
+  }
+
   ceu_sys_go(&app, CEU_IN_PRINT, NULL);
 
-  ParseFree(p, free);
   return 0;
 }
 
