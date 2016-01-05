@@ -33,14 +33,14 @@ or
     var int which;
   end
 or
-  tag FOO with
-    var Exp a;
-    var Exp b;
+  tag CONS with
+    var Exp car;
+    var Exp cdr;
     var Exp temp;
   end
 end
 
-pool Exp[] tree = new Exp.FOO(Exp.NIL(), Exp.NIL(), Exp.NIL());
+pool Exp[] tree = new Exp.CONS(Exp.NIL(), Exp.NIL(), Exp.NIL());
 
 par do
   loop do
@@ -63,10 +63,10 @@ par do
           _printf("%d", t:CONST.value);
         else/if t:VAR then
           _printf("X%d", t:VAR.which);
-        else/if t:FOO then
-          traverse &&t:FOO.a;
+        else/if t:CONS then
+          traverse &&t:CONS.car;
           _printf("\n");
-          traverse &&t:FOO.b;
+          traverse &&t:CONS.cdr;
         else
           _printf("?");
         end
@@ -78,45 +78,45 @@ with
   loop do
     var int x = await IDENTIFIER;
     _printf("Saw Identifier: %d\n", x);
-    tree.FOO.temp = new Exp.FOO(Exp.NIL(), Exp.VAR(x), Exp.NIL());
-    tree.FOO.temp.FOO.a = tree.FOO.a;
-    tree.FOO.a = tree.FOO.temp;
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.VAR(x), Exp.NIL());
+    tree.CONS.temp.CONS.car = tree.CONS.car;
+    tree.CONS.car = tree.CONS.temp;
   end
 with
   loop do
     var int x = await INTEGER;
     _printf("Saw Integer: %d\n", x);
-    tree.FOO.temp = new Exp.FOO(Exp.NIL(), Exp.CONST(x), Exp.NIL());
-    tree.FOO.temp.FOO.a = tree.FOO.a;
-    tree.FOO.a = tree.FOO.temp;
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.CONST(x), Exp.NIL());
+    tree.CONS.temp.CONS.car = tree.CONS.car;
+    tree.CONS.car = tree.CONS.temp;
   end
 with
   loop do
     await PLUS;
     _printf("Saw PLUS\n");
-    tree.FOO.temp = new Exp.FOO(Exp.NIL(), Exp.ADD(Exp.NIL(), Exp.NIL()), Exp.NIL());
-    tree.FOO.temp.FOO.b.ADD.left = tree.FOO.a.FOO.a.FOO.b; // cadr
-    tree.FOO.temp.FOO.b.ADD.right = tree.FOO.a.FOO.b; // car
-    tree.FOO.temp.FOO.a = tree.FOO.a.FOO.a.FOO.a; // cddr
-    tree.FOO.a = tree.FOO.temp;
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.ADD(Exp.NIL(), Exp.NIL()), Exp.NIL());
+    tree.CONS.temp.CONS.cdr.ADD.left = tree.CONS.car.CONS.car.CONS.cdr; // cadr
+    tree.CONS.temp.CONS.cdr.ADD.right = tree.CONS.car.CONS.cdr; // car
+    tree.CONS.temp.CONS.car = tree.CONS.car.CONS.car.CONS.car; // cddr
+    tree.CONS.car = tree.CONS.temp;
   end
 with
   loop do
     await TIMES;
     _printf("Saw TIMES\n");
-    tree.FOO.temp = new Exp.FOO(Exp.NIL(), Exp.MUL(Exp.NIL(), Exp.NIL()), Exp.NIL());
-    tree.FOO.temp.FOO.b.MUL.left = tree.FOO.a.FOO.a.FOO.b; // cadr
-    tree.FOO.temp.FOO.b.MUL.right = tree.FOO.a.FOO.b; // car
-    tree.FOO.temp.FOO.a = tree.FOO.a.FOO.a.FOO.a; // cddr
-    tree.FOO.a = tree.FOO.temp;
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.MUL(Exp.NIL(), Exp.NIL()), Exp.NIL());
+    tree.CONS.temp.CONS.cdr.MUL.left = tree.CONS.car.CONS.car.CONS.cdr; // cadr
+    tree.CONS.temp.CONS.cdr.MUL.right = tree.CONS.car.CONS.cdr; // car
+    tree.CONS.temp.CONS.car = tree.CONS.car.CONS.car.CONS.car; // cddr
+    tree.CONS.car = tree.CONS.temp;
   end
 with
   loop do
     var int x = await ASSIGN;
     _printf("Saw ASSIGN: %d\n", x);
-    tree.FOO.temp = new Exp.FOO(Exp.NIL(), Exp.SET(x, Exp.NIL()), Exp.NIL());
-    tree.FOO.temp.FOO.b.SET.right = tree.FOO.a.FOO.b; // car
-    tree.FOO.temp.FOO.a = tree.FOO.a.FOO.a; // cdr
-    tree.FOO.a = tree.FOO.temp;
+    tree.CONS.temp = new Exp.CONS(Exp.NIL(), Exp.SET(x, Exp.NIL()), Exp.NIL());
+    tree.CONS.temp.CONS.cdr.SET.right = tree.CONS.car.CONS.cdr; // car
+    tree.CONS.temp.CONS.car = tree.CONS.car.CONS.car; // cdr
+    tree.CONS.car = tree.CONS.temp;
   end
 end
