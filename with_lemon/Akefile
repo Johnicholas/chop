@@ -1,0 +1,27 @@
+test: ex1
+	./ex1
+
+ex1: main_part.c example1.c example1.h _ceu_app.c _ceu_app.h ceu_types.h
+	gcc -o ex1 main_part.c
+
+_ceu_app.h: example1.ceu
+	ceu example1.ceu
+
+_ceu_app.c: example1.ceu
+	ceu example1.ceu
+
+example1.c: example1.y lemon
+	./lemon example1.y
+
+example1.h: example1.y lemon
+	./lemon example1.y
+
+example1.out: example1.y lemon
+	./lemon example1.y
+
+lemon: lemon.c
+	gcc -o lemon lemon.c
+
+clean:
+	rm ex1 _ceu_app.h _ceu_app.c example1.c example1.h example1.out lemon
+
